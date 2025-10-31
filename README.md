@@ -7,7 +7,8 @@ If you wish, you could be using [ros1 bridge](https://github.com/ros2/ros1_bridg
 This is clearly alpha release with some basic functionnalities which will hopefully grow from time to time.
 
 This work is based on the [bebop_autonomy](https://github.com/AutonomyLab/bebop_autonomy) work of Mani Monajjemi and the work on [h264_image_transport](https://github.com/clydemcqueen/h264_image_transport) by Clyde McQueen.
-and finally the foxy rewriten by https://github.com/jeremyfix/ros2_bebop_driver.git br Jeremyfix
+
+and finally the foxy rewriten on [ros2_bebop_driver](https://github.com/jeremyfix/ros2_bebop_driver.git)   by Jeremyfix
 
 ## Using it
 

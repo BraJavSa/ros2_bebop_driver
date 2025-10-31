@@ -7,7 +7,9 @@ VideoDecoder::~VideoDecoder() {}
 bool VideoDecoder::init() {
     av_log_set_level(AV_LOG_WARNING);
 
-    p_codec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
+
+    p_codec_ = const_cast<AVCodec*>(avcodec_find_decoder(AV_CODEC_ID_H264));
+
     if (!p_codec_) {
 	std::cerr << "Could not find ffmpeg h264 codec" << std::endl;
 	return false;

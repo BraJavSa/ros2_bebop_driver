@@ -70,4 +70,68 @@ class Ardrone3PilotingStateSpeedChanged {
     std::tuple<std::string, time_point, float, float, float> get(void) const;
 };
 
+
+// Battery state callback
+class Ardrone3BatteryStateChanged {
+   private:
+    ARCONTROLLER_DICTIONARY_ARG_t* arg;
+    mutable std::mutex mutex;
+    uint8_t battery_percent;
+    time_point time;
+    const std::string frame_id = "base_link";
+
+   public:
+    Ardrone3BatteryStateChanged();
+    void set(const ARCONTROLLER_DICTIONARY_ARG_t* arguments);
+    std::tuple<std::string, time_point, uint8_t> get(void) const;
+};
+
+// Altitude state callback
+class Ardrone3AltitudeChanged {
+   private:
+    ARCONTROLLER_DICTIONARY_ARG_t* arg;
+    mutable std::mutex mutex;
+    double altitude;  // in meters
+    time_point time;
+    const std::string frame_id = "base_link";
+
+   public:
+    Ardrone3AltitudeChanged();
+    void set(const ARCONTROLLER_DICTIONARY_ARG_t* arguments);
+    std::tuple<std::string, time_point, double> get(void) const;
+};
+
+// GPS Location state callback
+class Ardrone3GpsLocationChanged {
+   private:
+    ARCONTROLLER_DICTIONARY_ARG_t* arg;
+    mutable std::mutex mutex;
+    double latitude;
+    double longitude;
+    double altitude;
+    time_point time;
+    const std::string frame_id = "base_link";
+
+   public:
+    Ardrone3GpsLocationChanged();
+    void set(const ARCONTROLLER_DICTIONARY_ARG_t* arguments);
+    std::tuple<std::string, time_point, double, double, double> get(void) const;
+};
+
+// Flying state callback
+class Ardrone3FlyingStateChanged {
+   private:
+    ARCONTROLLER_DICTIONARY_ARG_t* arg;
+    mutable std::mutex mutex;
+    uint8_t state;  // ARCOMMANDS_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED_STATE_*
+    time_point time;
+    const std::string frame_id = "base_link";
+
+   public:
+    Ardrone3FlyingStateChanged();
+    void set(const ARCONTROLLER_DICTIONARY_ARG_t* arguments);
+    std::tuple<std::string, time_point, uint8_t> get(void) const;
+};
+
+
 }  // namespace bebop_driver

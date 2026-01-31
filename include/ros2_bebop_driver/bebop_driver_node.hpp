@@ -44,6 +44,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <std_msgs/msg/u_int8.hpp>
 
 #include "ros2_bebop_driver/bebop.hpp"
+#include <sensor_msgs/msg/imu.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
 namespace bebop_driver {
 class BebopDriverNode : public rclcpp::Node {
    private:
@@ -76,8 +80,36 @@ class BebopDriverNode : public rclcpp::Node {
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odometry;
     rclcpp::TimerBase::SharedPtr odom_timer;
 
+    // Position publisher
+    rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr publisher_position;
+
+    // Altitude publisher (barometer)
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr publisher_altitude;
+    rclcpp::TimerBase::SharedPtr altitude_timer;
+
+    // GPS publisher
+    rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr publisher_gps;
+    rclcpp::TimerBase::SharedPtr gps_timer;
+
+    // Flying state publisher
+    rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr publisher_flying_state;
+    rclcpp::TimerBase::SharedPtr flying_state_timer;
+
+    // IMU publisher
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr publisher_imu;
+    rclcpp::TimerBase::SharedPtr imu_timer;
+
+    // Velocity publisher
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_velocity;
+    rclcpp::TimerBase::SharedPtr velocity_timer;
+
     void publishCamera(void);
     void publishOdometry(void);
+    void publishAltitude(void);
+    void publishGps(void);
+    void publishFlyingState(void);
+    void publishImu(void);
+    void publishVelocity(void);
     void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
 
    public:

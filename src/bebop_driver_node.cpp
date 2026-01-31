@@ -149,6 +149,40 @@ BebopDriverNode::BebopDriverNode()
 	this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
     odom_timer = this->create_wall_timer(
 	66ms, std::bind(&BebopDriverNode::publishOdometry, this));
+
+    // Position publisher at 15Hz (from odometry)
+    publisher_position =
+	this->create_publisher<geometry_msgs::msg::PointStamped>("position", 10);
+
+    // Altitude publisher at 10 Hz (barometer)
+    publisher_altitude =
+	this->create_publisher<std_msgs::msg::Float64>("altitude", 10);
+    altitude_timer = this->create_wall_timer(
+	100ms, std::bind(&BebopDriverNode::publishAltitude, this));
+
+    // GPS publisher at 10 Hz
+    publisher_gps =
+	this->create_publisher<sensor_msgs::msg::NavSatFix>("gps", 10);
+    gps_timer = this->create_wall_timer(
+	100ms, std::bind(&BebopDriverNode::publishGps, this));
+
+    // Flying state publisher at 10 Hz
+    publisher_flying_state =
+	this->create_publisher<std_msgs::msg::UInt8>("flying_state", 10);
+    flying_state_timer = this->create_wall_timer(
+	100ms, std::bind(&BebopDriverNode::publishFlyingState, this));
+
+    // IMU publisher at 30 Hz
+    publisher_imu =
+	this->create_publisher<sensor_msgs::msg::Imu>("imu", 10);
+    imu_timer = this->create_wall_timer(
+	33ms, std::bind(&BebopDriverNode::publishImu, this));
+
+    // Velocity publisher at 15 Hz
+    publisher_velocity =
+	this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel_feedback", 10);
+    velocity_timer = this->create_wall_timer(
+	66ms, std::bind(&BebopDriverNode::publishVelocity, this));
 }
 
 void BebopDriverNode::publishCamera(void) {
@@ -260,6 +294,16 @@ void BebopDriverNode::publishOdometry(void) {
     /*TODO odom_message.twist.covariance = ; */
 
     publisher_odometry->publish(odom_message);
+    
+    // Publish position
+    auto position_msg = geometry_msgs::msg::PointStamped();
+    position_msg.header.stamp = ros_stamp;
+    position_msg.header.frame_id = odom_frame_id;
+    position_msg.point.x = tf_odom_to_base.transform.translation.x;
+    position_msg.point.y = tf_odom_to_base.transform.translation.y;
+    position_msg.point.z = tf_odom_to_base.transform.translation.z;
+    publisher_position->publish(position_msg);
+    
     last_odom_time = now;
 }
 
@@ -272,6 +316,112 @@ void BebopDriverNode::cmdVelCallback(
     bebop->move(roll, pitch, gaz_speed, yaw_speed);
 }
 
+void BebopDriverNode::publishAltitude(void) {
+    auto [frame_id, time, altitude] = bebop->getArdrone3AltitudeChanged();
+    RCLCPP_DEBUG(this->get_logger(), "Altitude (barometer): %f m", altitude);
+
+    auto altitude_msg = std_msgs::msg::Float64();
+    altitude_msg.data = altitude;
+
+    publisher_altitude->publish(altitude_msg);
+}
+
+void BebopDriverNode::publishGps(void) {
+    auto [frame_id, time, latitude, longitude, altitude] =
+        bebop->getArdrone3GpsLocationChanged();
+    RCLCPP_DEBUG(this->get_logger(), "GPS: lat=%f, lon=%f, alt=%f", latitude,
+                 longitude, altitude);
+
+    auto gps_msg = sensor_msgs::msg::NavSatFix();
+    gps_msg.header.stamp = this->get_clock()->now();
+    gps_msg.header.frame_id = "gps";
+    gps_msg.latitude = latitude;
+    gps_msg.longitude = longitude;
+    gps_msg.altitude = altitude;
+    gps_msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+    gps_msg.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
+
+    publisher_gps->publish(gps_msg);
+}
+
+void BebopDriverNode::publishFlyingState(void) {
+    auto [frame_id, time, state] = bebop->getArdrone3FlyingStateChanged();
+    RCLCPP_DEBUG(this->get_logger(), "Flying state: %d", state);
+
+    auto state_msg = std_msgs::msg::UInt8();
+    state_msg.data = state;
+
+    publisher_flying_state->publish(state_msg);
+}
+
+void BebopDriverNode::publishImu(void) {
+    auto [attitude_frame_id, attitude_time, roll, pitch, yaw] =
+        bebop->getArdrone3PilotingStateAttitude();
+    auto [speed_frame_id, speed_time, vx, vy, vz] =
+        bebop->getArdrone3PilotingStateSpeed();
+    
+    RCLCPP_DEBUG(this->get_logger(), "IMU: roll=%f, pitch=%f, yaw=%f, vel=(%f, %f, %f)", roll,
+                 pitch, yaw, vx, vy, vz);
+
+    auto imu_msg = sensor_msgs::msg::Imu();
+    imu_msg.header.stamp = this->get_clock()->now();
+    imu_msg.header.frame_id = "imu_link";
+
+    // Set orientation from attitude (roll, pitch, yaw -> quaternion)
+    tf2::Quaternion q;
+    q.setRPY(roll, pitch, yaw);
+    imu_msg.orientation.x = q.x();
+    imu_msg.orientation.y = -q.y();
+    imu_msg.orientation.z = -q.z();
+    imu_msg.orientation.w = q.w();
+
+    // Orientation covariance
+    imu_msg.orientation_covariance[0] = 0.01;  // roll variance
+    imu_msg.orientation_covariance[4] = 0.01;  // pitch variance
+    imu_msg.orientation_covariance[8] = 0.01;  // yaw variance
+
+    // Angular velocity (estimated from acceleration, not directly available from Bebop)
+    // For now, we set to zero as Bebop doesn't provide raw angular velocity
+    imu_msg.angular_velocity.x = 0.0;
+    imu_msg.angular_velocity.y = 0.0;
+    imu_msg.angular_velocity.z = 0.0;
+    imu_msg.angular_velocity_covariance[0] = -1;  // Not available
+
+    // Linear acceleration (estimated from velocity changes)
+    // Apply coordinate frame transformation to match standard ROS conventions
+    imu_msg.linear_acceleration.x = vx * 0.5;   // Forward/backward
+    imu_msg.linear_acceleration.y = vy * 0.5;   // Left/right  
+    imu_msg.linear_acceleration.z = vz;  // Up/down
+
+    // Linear acceleration covariance
+    imu_msg.linear_acceleration_covariance[0] = 0.1;
+    imu_msg.linear_acceleration_covariance[4] = 0.1;
+    imu_msg.linear_acceleration_covariance[8] = 0.1;
+
+    publisher_imu->publish(imu_msg);
+}
+
+void BebopDriverNode::publishVelocity(void) {
+    auto [speed_frame_id, speed_time, vx, vy, vz] =
+        bebop->getArdrone3PilotingStateSpeed();
+    
+    RCLCPP_DEBUG(this->get_logger(), "Velocity: vx=%f, vy=%f, vz=%f", vx, vy, vz);
+
+    auto vel_msg = geometry_msgs::msg::Twist();
+    
+    // Linear velocities
+    vel_msg.linear.x = vx;
+    vel_msg.linear.y = vy;
+    vel_msg.linear.z = vz;
+    
+    // Angular velocities (not available from Bebop)
+    vel_msg.angular.x = 0.0;
+    vel_msg.angular.y = 0.0;
+    vel_msg.angular.z = 0.0;
+
+    publisher_velocity->publish(vel_msg);
+}
+
 }  // namespace bebop_driver
 
 int main(int argc, char** argv) {
@@ -280,3 +430,4 @@ int main(int argc, char** argv) {
     rclcpp::shutdown();
     return 0;
 }
+

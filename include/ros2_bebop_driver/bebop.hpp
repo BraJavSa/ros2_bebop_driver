@@ -92,6 +92,10 @@ class Bebop {
     Ardrone3PilotingStateAttitudeChanged
 	ardrone3_piloting_state_attitude_changed;
     Ardrone3PilotingStateSpeedChanged ardrone3_piloting_state_speed_changed;
+    Ardrone3BatteryStateChanged ardrone3_battery_state_changed;
+    Ardrone3AltitudeChanged ardrone3_altitude_changed;
+    Ardrone3GpsLocationChanged ardrone3_gps_location_changed;
+    Ardrone3FlyingStateChanged ardrone3_flying_state_changed;
 
    public:
     Bebop();
@@ -123,6 +127,18 @@ class Bebop {
     /* std::tuple<std::string, time_point, float, float, float> */
     auto getArdrone3PilotingStateSpeed() const {
 	return ardrone3_piloting_state_speed_changed.get();
+    };
+    auto getArdrone3BatteryStateChanged() const {
+        return ardrone3_battery_state_changed.get();
+    };
+    auto getArdrone3AltitudeChanged() const {
+        return ardrone3_altitude_changed.get();
+    };
+    auto getArdrone3GpsLocationChanged() const {
+        return ardrone3_gps_location_changed.get();
+    };
+    auto getArdrone3FlyingStateChanged() const {
+        return ardrone3_flying_state_changed.get();
     };
 
     void throwOnInternalError(const std::string& message);

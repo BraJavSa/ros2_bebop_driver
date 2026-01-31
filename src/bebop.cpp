@@ -319,16 +319,28 @@ void commandReceivedCallback(
     Bebop* bebop = static_cast<Bebop*>(customData);
     // TODO: to be done when the generation from XML is done
     switch (cmd_key) {
-	case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_SPEEDCHANGED:
-	    bebop->ardrone3_piloting_state_speed_changed.set(
-		element_dict_ptr->arguments);
-	    break;
-	case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_ATTITUDECHANGED:
-	    bebop->ardrone3_piloting_state_attitude_changed.set(
-		element_dict_ptr->arguments);
-	    break;
-	default:
-	    break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_SPEEDCHANGED:
+            bebop->ardrone3_piloting_state_speed_changed.set(
+                element_dict_ptr->arguments);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_ATTITUDECHANGED:
+            bebop->ardrone3_piloting_state_attitude_changed.set(
+                element_dict_ptr->arguments);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_ALTITUDECHANGED:
+            bebop->ardrone3_altitude_changed.set(element_dict_ptr->arguments);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_GPSLOCATIONCHANGED:
+            bebop->ardrone3_gps_location_changed.set(element_dict_ptr->arguments);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED:
+            bebop->ardrone3_flying_state_changed.set(element_dict_ptr->arguments);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_COMMON_COMMONSTATE_BATTERYSTATECHANGED:
+            bebop->ardrone3_battery_state_changed.set(element_dict_ptr->arguments);
+            break;
+        default:
+            break;
     }
 }
 
@@ -347,28 +359,28 @@ eARCONTROLLER_ERROR decoderConfigCallback(
 eARCONTROLLER_ERROR didReceiveFrameCallback(
     [[maybe_unused]] ARCONTROLLER_Frame_t* frame, void* customData) {
     if (!frame) {
-	ARSAL_PRINT(ARSAL_PRINT_WARNING, TAG, "Received frame is NULL");
-	return ARCONTROLLER_ERROR_NO_VIDEO;
+        ARSAL_PRINT(ARSAL_PRINT_WARNING, TAG, "Received frame is NULL");
+        return ARCONTROLLER_ERROR_NO_VIDEO;
     }
 
     Bebop* bebop = static_cast<Bebop*>(customData);
 
     if (!bebop->isConnected()) return ARCONTROLLER_ERROR;
     {
-	std::lock_guard<std::mutex> lock(bebop->frame_available_mutex);
-	// It happens the previous frame has not been published before
-	// a new is available
-	/* if (bebop->is_frame_available) */
-	/*     std::cerr << "Previous frame might have been missed." <<
-	 * std::endl; */
+        std::lock_guard<std::mutex> lock(bebop->frame_available_mutex);
+        // It happens the previous frame has not been published before
+        // a new is available
+        /* if (bebop->is_frame_available) */
+        /*     std::cerr << "Previous frame might have been missed." << */
+        /* std::endl; */
 
-	if (!bebop->video_decoder.decode(frame->data, frame->used)) {
-	    std::cerr << "Video decode failed or not yet available"
-		      << std::endl;
-	} else {
-	    bebop->is_frame_available = true;
-	    bebop->frame_available_condition.notify_one();
-	}
+        if (!bebop->video_decoder.decode(frame->data, frame->used)) {
+            std::cerr << "Video decode failed or not yet available"
+                      << std::endl;
+        } else {
+            bebop->is_frame_available = true;
+            bebop->frame_available_condition.notify_one();
+        }
     }
     return ARCONTROLLER_OK;
 }
@@ -377,17 +389,16 @@ void Bebop::throwOnInternalError(const std::string& message) {
     if (!is_connected || !deviceController) throw std::runtime_error(message);
 }
 void Bebop::throwOnCtrlError(const eARCONTROLLER_ERROR& error,
-			     const std::string& message) {
+                             const std::string& message) {
     if (error != ARCONTROLLER_OK)
-	throw std::runtime_error(
-	    message + std::string(ARCONTROLLER_Error_ToString(error)));
+        throw std::runtime_error(
+            message + std::string(ARCONTROLLER_Error_ToString(error)));
 }
 void Bebop::throwOnDiscError(const eARDISCOVERY_ERROR& error,
-			     const std::string& message) {
+                             const std::string& message) {
     if (error != ARDISCOVERY_OK)
-	throw std::runtime_error(
-	    message + std::string(ARDISCOVERY_Error_ToString(error)));
+        throw std::runtime_error(
+            message + std::string(ARDISCOVERY_Error_ToString(error)));
 }
 
 }  // namespace bebop_driver
-

@@ -115,4 +115,112 @@ Ardrone3PilotingStateSpeedChanged ::get(void) const {
     return std::tuple_cat(std::make_tuple(frame_id, time),
 			  speedx_speedy_speedz);
 }
+
+
+
+
+Ardrone3BatteryStateChanged::Ardrone3BatteryStateChanged() {
+    battery_percent = 0;
+}
+
+void Ardrone3BatteryStateChanged::set(
+    const ARCONTROLLER_DICTIONARY_ARG_t *arguments) {
+    std::unique_lock<std::mutex> lock(mutex);
+    time = clock_type::now();
+
+    arg = NULL;
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_COMMON_COMMONSTATE_BATTERYSTATECHANGED_PERCENT,
+        arg);
+    if (arg) battery_percent = arg->value.U8;
+}
+
+std::tuple<std::string, time_point, uint8_t>
+Ardrone3BatteryStateChanged::get(void) const {
+    std::unique_lock<std::mutex> lock(mutex);
+
+    return std::make_tuple(frame_id, time, battery_percent);
+}
+
+Ardrone3AltitudeChanged::Ardrone3AltitudeChanged() { altitude = 0.0; }
+
+void Ardrone3AltitudeChanged::set(const ARCONTROLLER_DICTIONARY_ARG_t *arguments) {
+    std::unique_lock<std::mutex> lock(mutex);
+    time = clock_type::now();
+
+    arg = NULL;
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_ALTITUDECHANGED_ALTITUDE,
+        arg);
+    if (arg) altitude = arg->value.Double;
+}
+
+std::tuple<std::string, time_point, double>
+Ardrone3AltitudeChanged::get(void) const {
+    std::unique_lock<std::mutex> lock(mutex);
+
+    return std::make_tuple(frame_id, time, altitude);
+}
+
+Ardrone3GpsLocationChanged::Ardrone3GpsLocationChanged() {
+    latitude = 0.0;
+    longitude = 0.0;
+    altitude = 0.0;
+}
+
+void Ardrone3GpsLocationChanged::set(
+    const ARCONTROLLER_DICTIONARY_ARG_t *arguments) {
+    std::unique_lock<std::mutex> lock(mutex);
+    time = clock_type::now();
+
+    arg = NULL;
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_GPSLOCATIONCHANGED_LATITUDE,
+        arg);
+    if (arg) latitude = arg->value.Double;
+
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_GPSLOCATIONCHANGED_LONGITUDE,
+        arg);
+    if (arg) longitude = arg->value.Double;
+
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_GPSLOCATIONCHANGED_ALTITUDE,
+        arg);
+    if (arg) altitude = arg->value.Double;
+}
+
+std::tuple<std::string, time_point, double, double, double>
+Ardrone3GpsLocationChanged::get(void) const {
+    std::unique_lock<std::mutex> lock(mutex);
+
+    return std::make_tuple(frame_id, time, latitude, longitude, altitude);
+}
+
+Ardrone3FlyingStateChanged::Ardrone3FlyingStateChanged() { state = 0; }
+
+void Ardrone3FlyingStateChanged::set(const ARCONTROLLER_DICTIONARY_ARG_t *arguments) {
+    std::unique_lock<std::mutex> lock(mutex);
+    time = clock_type::now();
+
+    arg = NULL;
+    HASH_FIND_STR(
+        arguments,
+        ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_FLYINGSTATECHANGED_STATE,
+        arg);
+    if (arg) state = arg->value.U8;
+}
+
+std::tuple<std::string, time_point, uint8_t>
+Ardrone3FlyingStateChanged::get(void) const {
+    std::unique_lock<std::mutex> lock(mutex);
+
+    return std::make_tuple(frame_id, time, state);
+}
+
 }  // namespace bebop_driver
